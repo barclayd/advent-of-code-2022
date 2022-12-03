@@ -17,3 +17,7 @@ cargo run --bin part_2
 ```shell
 cargo test --bin part_1
 ```
+
+```shell
+cargo test --bin part_2
+```
