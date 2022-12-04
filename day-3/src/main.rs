@@ -1,15 +1,11 @@
 extern crate core;
 
-use std::fs;
 use itertools::Itertools;
+use std::fs;
 
 const ASCII_LOWER: [char; 26] = [
-    'a', 'b', 'c', 'd', 'e',
-    'f', 'g', 'h', 'i', 'j',
-    'k', 'l', 'm', 'n', 'o',
-    'p', 'q', 'r', 's', 't',
-    'u', 'v', 'w', 'x', 'y',
-    'z',
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
+    't', 'u', 'v', 'w', 'x', 'y', 'z',
 ];
 
 fn get_shared_letter_from_codes(codes: &(String, String)) -> char {
@@ -68,37 +64,57 @@ fn get_priority_for_char(char: &char) -> i16 {
 
     let letter_to_find: String = char.to_lowercase().to_string();
 
-    let index = ASCII_LOWER.iter().position(|letter| letter.to_string() == letter_to_find).unwrap() as i16;
+    let index = ASCII_LOWER
+        .iter()
+        .position(|letter| letter.to_string() == letter_to_find)
+        .unwrap() as i16;
 
     return index + 1 + base_priority;
 }
 
 fn get_sum_of_priorities(file_path: &str) -> i16 {
-    let file_contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
+    let file_contents =
+        fs::read_to_string(file_path).expect("Should have been able to read the file");
 
     let file_contents_by_line = file_contents.lines();
 
     let mut codes: Vec<(String, String)> = Vec::new();
 
     for line in file_contents_by_line {
-        codes.push(to_chunks(line, line.len()/2));
+        codes.push(to_chunks(line, line.len() / 2));
     }
 
-    let shared_letters = codes.iter().map(|codes| get_shared_letter_from_codes(codes)).collect::<Vec<char>>();
+    let shared_letters = codes
+        .iter()
+        .map(|codes| get_shared_letter_from_codes(codes))
+        .collect::<Vec<char>>();
 
-    return shared_letters.iter().map(|letter| get_priority_for_char(letter)).sum::<i16>();
+    return shared_letters
+        .iter()
+        .map(|letter| get_priority_for_char(letter))
+        .sum::<i16>();
 }
 
 fn get_sum_of_priorities_by_group(file_path: &str) -> i16 {
-    let file_contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
+    let file_contents =
+        fs::read_to_string(file_path).expect("Should have been able to read the file");
 
     let file_contents_by_line = file_contents.lines().chunks(3);
 
-    let group_codes = file_contents_by_line.into_iter().map(|line| Vec::from_iter(line)).collect::<Vec<Vec<&str>>>();
+    let group_codes = file_contents_by_line
+        .into_iter()
+        .map(|line| Vec::from_iter(line))
+        .collect::<Vec<Vec<&str>>>();
 
-    let common_letters = group_codes.iter().map(|group_code| get_common_letter_in_string(group_code)).collect::<Vec<char>>();
+    let common_letters = group_codes
+        .iter()
+        .map(|group_code| get_common_letter_in_string(group_code))
+        .collect::<Vec<char>>();
 
-    return common_letters.iter().map(|letter| get_priority_for_char(letter)).sum::<i16>();
+    return common_letters
+        .iter()
+        .map(|letter| get_priority_for_char(letter))
+        .sum::<i16>();
 }
 
 fn main() {
