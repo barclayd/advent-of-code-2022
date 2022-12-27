@@ -68,7 +68,7 @@ fn get_size_of_smallest_directory_large_enough_to_be_removed(file_path: &str) ->
 
 fn main() {
     get_sum_of_totals("./test.txt");
-    // get_size_of_smallest_directory_large_enough_to_be_removed("./input.txt");
+    get_size_of_smallest_directory_large_enough_to_be_removed("./input.txt");
 }
 
 #[cfg(test)]
