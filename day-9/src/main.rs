@@ -47,12 +47,7 @@ impl Rope {
             let tail_to_head_row_difference = self.segment[i - 1].0 - self.segment[i].0;
             let tail_to_head_col_difference = self.segment[i - 1].1 - self.segment[i].1;
 
-            if tail_to_head_row_difference == 0 && tail_to_head_col_difference > 1 {
-                self.segment[i].1 += tail_to_head_col_difference.signum();
-            } else if tail_to_head_col_difference == 0 && tail_to_head_row_difference > 1 {
-                self.segment[i].0 += tail_to_head_row_difference.signum();
-            } else if tail_to_head_row_difference.abs() > 1 || tail_to_head_col_difference.abs() > 1
-            {
+            if tail_to_head_row_difference.abs() > 1 || tail_to_head_col_difference.abs() > 1 {
                 self.segment[i].0 += tail_to_head_row_difference.signum();
                 self.segment[i].1 += tail_to_head_col_difference.signum();
             }
