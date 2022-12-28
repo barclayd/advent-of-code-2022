@@ -1,9 +1,39 @@
-extern crate core;
-
 use std::fs;
 use std::ops::Range;
 
 type Grid = Vec<Vec<u32>>;
+
+#[derive(Clone, Copy)]
+enum Direction {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+fn get_slice_for_direction(
+    direction: Direction,
+    grid: &Grid,
+    (current_row_index, current_column_index): (usize, usize),
+) -> Vec<u32> {
+    let number_of_columns = grid[0].len();
+    let number_of_rows = grid.len();
+
+    match direction {
+        Direction::Left => grid[current_row_index][0..current_column_index].to_vec(),
+        Direction::Right => {
+            grid[current_row_index][current_column_index + 1..number_of_columns].to_vec()
+        }
+        Direction::Up => {
+            let up_range = 0..current_row_index;
+            get_vertical_slice_of_trees(up_range, grid, current_column_index)
+        }
+        Direction::Down => {
+            let down_range = current_row_index + 1..number_of_rows;
+            get_vertical_slice_of_trees(down_range, grid, current_column_index)
+        }
+    }
+}
 
 fn get_vertical_slice_of_trees(
     range: Range<usize>,
@@ -19,16 +49,26 @@ fn get_vertical_slice_of_trees(
     return slice;
 }
 
+fn is_reverse(direction: Direction) -> bool {
+    match direction {
+        Direction::Left | Direction::Up => true,
+        Direction::Right | Direction::Down => false,
+    }
+}
+
 fn get_number_of_visible_trees(
-    slice: &Vec<u32>,
+    direction: Direction,
+    grid: &Grid,
+    grid_position: (usize, usize),
     current_tree_height: &u32,
-    is_reverse: bool,
 ) -> u32 {
+    let slice = get_slice_for_direction(direction, grid, grid_position);
+
     let mut number_of_trees_visible = 0;
 
     let mut range = slice.clone();
 
-    if is_reverse {
+    if is_reverse(direction) {
         range.reverse();
     }
 
@@ -43,7 +83,14 @@ fn get_number_of_visible_trees(
     return number_of_trees_visible;
 }
 
-fn are_trees_shorter_than_current_tree(slice: Vec<u32>, current_tree_height: u32) -> bool {
+fn are_trees_shorter_than_current_tree(
+    direction: Direction,
+    grid: &Grid,
+    grid_position: (usize, usize),
+    current_tree_height: u32,
+) -> bool {
+    let slice = get_slice_for_direction(direction, grid, grid_position);
+
     let trees_shorter_than_current_tree = slice
         .iter()
         .filter(|tree_height| tree_height < &&current_tree_height)
@@ -71,37 +118,43 @@ fn is_at_edge_of_grid(
     return false;
 }
 
-fn is_tree_visible(grid: &Grid, (current_row_index, current_column_index): (usize, usize)) -> bool {
+fn is_tree_visible(grid: &Grid, grid_position: (usize, usize)) -> bool {
+    let (current_row_index, current_column_index) = grid_position;
     let current_tree_height = grid[current_row_index][current_column_index];
-
-    let number_of_columns = grid[0].len();
-    let number_of_rows = grid.len();
-
-    let up_range = 0..current_row_index;
-    let down_range = current_row_index + 1..number_of_rows;
-
-    let up_slice = get_vertical_slice_of_trees(up_range, grid, current_column_index);
-    let down_slice = get_vertical_slice_of_trees(down_range, grid, current_column_index);
-    let left_slice = grid[current_row_index][0..current_column_index].to_vec();
-    let right_slice = grid[current_row_index][current_column_index + 1..number_of_columns].to_vec();
 
     if is_at_edge_of_grid(grid, (current_row_index, current_column_index)) {
         return true;
     }
 
-    if are_trees_shorter_than_current_tree(left_slice, current_tree_height) {
+    if are_trees_shorter_than_current_tree(
+        Direction::Left,
+        grid,
+        grid_position,
+        current_tree_height,
+    ) {
         return true;
     }
 
-    if are_trees_shorter_than_current_tree(right_slice, current_tree_height) {
+    if are_trees_shorter_than_current_tree(
+        Direction::Right,
+        grid,
+        grid_position,
+        current_tree_height,
+    ) {
         return true;
     }
 
-    if are_trees_shorter_than_current_tree(up_slice, current_tree_height) {
+    if are_trees_shorter_than_current_tree(Direction::Up, grid, grid_position, current_tree_height)
+    {
         return true;
     }
 
-    if are_trees_shorter_than_current_tree(down_slice, current_tree_height) {
+    if are_trees_shorter_than_current_tree(
+        Direction::Down,
+        grid,
+        grid_position,
+        current_tree_height,
+    ) {
         return true;
     }
 
@@ -113,26 +166,16 @@ fn get_score_for_tree(grid: &Grid, grid_position: (usize, usize)) -> u32 {
 
     let current_tree_height = &grid[current_row_index][current_column_index];
 
-    let number_of_columns = grid[0].len();
-    let number_of_rows = grid.len();
-
-    let up_range = 0..current_row_index;
-    let down_range = current_row_index + 1..number_of_rows;
-
-    let up_slice = get_vertical_slice_of_trees(up_range, grid, current_column_index);
-    let down_slice = get_vertical_slice_of_trees(down_range, grid, current_column_index);
-    let left_slice = grid[current_row_index][0..current_column_index].to_vec();
-    let right_slice = grid[current_row_index][current_column_index + 1..number_of_columns].to_vec();
-
     let mut score = 1;
 
-    score *= get_number_of_visible_trees(&left_slice, current_tree_height, true);
+    score *= get_number_of_visible_trees(Direction::Left, grid, grid_position, current_tree_height);
 
-    score *= get_number_of_visible_trees(&right_slice, current_tree_height, false);
+    score *=
+        get_number_of_visible_trees(Direction::Right, grid, grid_position, current_tree_height);
 
-    score *= get_number_of_visible_trees(&up_slice, current_tree_height, true);
+    score *= get_number_of_visible_trees(Direction::Up, grid, grid_position, current_tree_height);
 
-    score *= get_number_of_visible_trees(&down_slice, current_tree_height, false);
+    score *= get_number_of_visible_trees(Direction::Down, grid, grid_position, current_tree_height);
 
     return score;
 }
