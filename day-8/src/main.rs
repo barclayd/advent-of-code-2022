@@ -1,12 +1,38 @@
 extern crate core;
 
 use std::fs;
+use std::ops::Range;
 
 type Grid = Vec<Vec<u32>>;
 
-fn is_at_edge_of_grid(grid: &Grid, grid_position: (usize, usize)) -> bool {
-    let (current_row_index, current_column_index) = grid_position;
+fn are_trees_shorter_than_current_tree(slice: Vec<u32>, current_tree_height: u32) -> bool {
+    let trees_shorter_than_current_tree = slice
+        .iter()
+        .filter(|tree_height| tree_height < &&current_tree_height)
+        .collect::<Vec<&u32>>();
 
+    return trees_shorter_than_current_tree.len() == slice.len();
+}
+
+fn is_visible_vertical(
+    row_range: Range<usize>,
+    current_tree_height: u32,
+    grid: &Grid,
+    current_column_index: usize,
+) -> bool {
+    let mut column_slice: Vec<u32> = Vec::new();
+
+    for row_index in row_range {
+        column_slice.push(grid[row_index][current_column_index]);
+    }
+
+    return are_trees_shorter_than_current_tree(column_slice, current_tree_height);
+}
+
+fn is_at_edge_of_grid(
+    grid: &Grid,
+    (current_row_index, current_column_index): (usize, usize),
+) -> bool {
     if current_row_index == 0 {
         return true;
     }
@@ -19,25 +45,6 @@ fn is_at_edge_of_grid(grid: &Grid, grid_position: (usize, usize)) -> bool {
     if current_column_index == grid[current_row_index].len() - 1 {
         return true;
     }
-    return false;
-}
-
-fn is_tree_visible_from_left(grid: &Grid, grid_position: (usize, usize)) -> bool {
-    let (current_row_index, current_column_index) = grid_position;
-
-    let current_tree_height = grid[current_row_index][current_column_index];
-
-    let left_slice = &grid[current_row_index][0..current_column_index];
-
-    let trees_shorter_than_current_tree = left_slice
-        .iter()
-        .filter(|tree_height| tree_height < &&current_tree_height)
-        .collect::<Vec<&u32>>();
-
-    if trees_shorter_than_current_tree.len() == left_slice.len() {
-        return true;
-    }
-
     return false;
 }
 
@@ -133,93 +140,34 @@ fn calculate_scenic_score_from_down(grid: &Grid, grid_position: (usize, usize)) 
     return number_of_trees_visible;
 }
 
-fn is_tree_visible_from_right(grid: &Grid, grid_position: (usize, usize)) -> bool {
-    let (current_row_index, current_column_index) = grid_position;
-
+fn is_tree_visible(grid: &Grid, (current_row_index, current_column_index): (usize, usize)) -> bool {
     let current_tree_height = grid[current_row_index][current_column_index];
 
     let number_of_columns = grid[0].len();
-
-    let right_slice = &grid[current_row_index][current_column_index + 1..number_of_columns];
-
-    let trees_shorter_than_current_tree = right_slice
-        .iter()
-        .filter(|tree_size| tree_size < &&current_tree_height)
-        .collect::<Vec<&u32>>();
-
-    if trees_shorter_than_current_tree.len() == right_slice.len() {
-        return true;
-    }
-
-    return false;
-}
-
-fn is_tree_visible_from_up(grid: &Grid, grid_position: (usize, usize)) -> bool {
-    let (current_row_index, current_column_index) = grid_position;
-
-    let current_tree_height = grid[current_row_index][current_column_index];
-
-    let mut up_slice: Vec<u32> = Vec::new();
-
-    for i in 0..current_row_index {
-        up_slice.push(grid[i][current_column_index]);
-    }
-
-    let trees_shorter_than_current_tree = up_slice
-        .iter()
-        .filter(|tree_size| tree_size < &&current_tree_height)
-        .collect::<Vec<&u32>>();
-
-    if trees_shorter_than_current_tree.len() == up_slice.len() {
-        return true;
-    }
-
-    return false;
-}
-
-fn is_tree_visible_from_down(grid: &Grid, grid_position: (usize, usize)) -> bool {
-    let (current_row_index, current_column_index) = grid_position;
-
-    let current_tree_height = grid[current_row_index][current_column_index];
-
     let number_of_rows = grid.len();
 
-    let mut down_slice: Vec<u32> = Vec::new();
+    let left_slice = &grid[current_row_index][0..current_column_index];
+    let right_slice = &grid[current_row_index][current_column_index + 1..number_of_columns];
+    let up_range = 0..current_row_index;
+    let down_range = current_row_index + 1..number_of_rows;
 
-    for i in current_row_index + 1..number_of_rows {
-        down_slice.push(grid[i][current_column_index]);
-    }
-
-    let trees_shorter_than_current_tree = down_slice
-        .iter()
-        .filter(|tree_size| tree_size < &&current_tree_height)
-        .collect::<Vec<&u32>>();
-
-    if trees_shorter_than_current_tree.len() == down_slice.len() {
+    if is_at_edge_of_grid(grid, (current_row_index, current_column_index)) {
         return true;
     }
 
-    return false;
-}
-
-fn is_tree_visible(grid: &Grid, grid_position: (usize, usize)) -> bool {
-    if is_at_edge_of_grid(grid, grid_position) {
+    if are_trees_shorter_than_current_tree(left_slice.to_vec(), current_tree_height) {
         return true;
     }
 
-    if is_tree_visible_from_left(grid, grid_position) {
+    if are_trees_shorter_than_current_tree(right_slice.to_vec(), current_tree_height) {
         return true;
     }
 
-    if is_tree_visible_from_up(grid, grid_position) {
+    if is_visible_vertical(up_range, current_tree_height, grid, current_column_index) {
         return true;
     }
 
-    if is_tree_visible_from_right(grid, grid_position) {
-        return true;
-    }
-
-    if is_tree_visible_from_down(grid, grid_position) {
+    if is_visible_vertical(down_range, current_tree_height, grid, current_column_index) {
         return true;
     }
 
