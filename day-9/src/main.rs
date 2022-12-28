@@ -30,10 +30,26 @@ struct Rope {
 }
 
 impl Rope {
-    const DIRECTION: [Position; 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
+    const DIRECTION: [Position; 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
     fn make_move(&mut self, direction: Direction) {
-        println!("{direction:?}")
+        let rope_direction = Self::DIRECTION[direction as usize];
+        self.head.0 += rope_direction.0;
+        self.head.1 += rope_direction.1;
+
+        let tail_to_head_row_difference = self.head.0 - self.tail.0;
+        let tail_to_head_col_difference = self.head.1 - self.tail.1;
+
+        if tail_to_head_row_difference.abs() == 0 && tail_to_head_col_difference.abs() > 1 {
+            self.tail.1 += tail_to_head_col_difference.signum();
+        } else if tail_to_head_col_difference.abs() == 0 && tail_to_head_row_difference.abs() > 1 {
+            self.tail.0 += tail_to_head_row_difference.signum();
+        } else if tail_to_head_row_difference.abs() > 1 || tail_to_head_col_difference.abs() > 1 {
+            self.tail.0 += tail_to_head_row_difference.signum();
+            self.tail.1 += tail_to_head_col_difference.signum();
+        }
+
+        self.visited.insert(self.tail);
     }
 }
 
