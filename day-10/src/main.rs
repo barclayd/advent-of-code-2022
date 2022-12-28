@@ -10,6 +10,7 @@ enum Command {
 struct Result {
     sum: i32,
     register_value: i32,
+    crt_screen: Vec<String>,
 }
 
 impl Command {
@@ -27,7 +28,7 @@ fn get_register_values(file_path: &str) -> Result {
         fs::read_to_string(file_path).expect("Should have been able to read the file");
 
     let mut queue: HashMap<i32, i32> = HashMap::new();
-    let mut cycle_counts = 1;
+    let mut cycle_count = 0;
     let mut register_value = 1;
 
     const INTERESTING_SIGNAL_STRENGTHS_CYCLE_COUNTS: [i32; 6] = [20, 60, 100, 140, 180, 220];
@@ -42,22 +43,40 @@ fn get_register_values(file_path: &str) -> Result {
                 let register_modifier = command_arguments[1].parse::<i32>().unwrap();
 
                 let execution_time = 2;
-                let cycle_count_to_complete_on = cycle_counts + execution_time;
+                let cycle_count_to_complete_on = cycle_count + execution_time;
 
                 queue.insert(cycle_count_to_complete_on, register_modifier);
 
-                cycle_counts += execution_time;
+                cycle_count += execution_time;
             }
             Command::Noop => {
-                cycle_counts += 1;
+                cycle_count += 1;
             }
         }
     }
 
-    for cycle_count_index in 1..cycle_counts {
-        let cycle_count_number = cycle_count_index + 1;
+    let mut crt_screen: Vec<String> = Vec::new();
 
-        if let Some(register_modifier) = queue.get(&cycle_count_number) {
+    let mut crt_line = "".to_string();
+
+    for cycle_count_index in 1..=cycle_count {
+        let cycle_count_number = cycle_count_index + 1;
+        let previous_cycle_count_number = cycle_count_index - 1;
+
+        if previous_cycle_count_number % 40 == 0 && !crt_line.is_empty() {
+            crt_screen.push(crt_line);
+            crt_line = "".to_string();
+        }
+
+        if previous_cycle_count_number % 40 < register_value - 1
+            || previous_cycle_count_number % 40 > register_value + 1
+        {
+            crt_line.push('.');
+        } else {
+            crt_line.push('#');
+        }
+
+        if let Some(register_modifier) = queue.get(&cycle_count_index) {
             register_value += register_modifier;
         }
         if INTERESTING_SIGNAL_STRENGTHS_CYCLE_COUNTS.contains(&cycle_count_number) {
@@ -65,19 +84,26 @@ fn get_register_values(file_path: &str) -> Result {
         }
     }
 
+    crt_screen.push(crt_line);
+
     return Result {
+        crt_screen,
         register_value,
         sum: interesting_signal_strengths.into_iter().sum(),
     };
 }
 
 fn main() {
-    get_register_values("./input.txt");
+    let result = get_register_values("./input.txt");
+    for crt_line in result.crt_screen {
+        println!("{}", crt_line);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::get_register_values;
+    use std::fs;
 
     #[test]
     fn it_returns_expected_x_register_value_for_sample_file() {
@@ -86,14 +112,40 @@ mod tests {
     }
 
     #[test]
-    fn it_returns_expected_sum_of_signal_strengths_at_intervals_with_test_file() {
+    fn it_returns_expected_sum_of_signal_strengths_at_intervals_for_test_file() {
         let result = get_register_values("./test.txt");
         assert_eq!(result.sum, 13140);
     }
 
     #[test]
-    fn it_returns_expected_sum_of_signal_strengths_at_intervals_with_input_file() {
+    fn it_returns_expected_sum_of_signal_strengths_at_intervals_for_input_file() {
         let result = get_register_values("./input.txt");
         assert_eq!(result.sum, 14820);
+    }
+
+    #[test]
+    fn it_returns_expected_crt_output_for_test_file() {
+        let result = get_register_values("./test.txt");
+
+        let file_contents =
+            fs::read_to_string("./test-crt.txt").expect("Should have been able to read the file");
+
+        for (index, test_crt_line) in file_contents.lines().enumerate() {
+            let crt_line = &result.crt_screen[index];
+            assert_eq!(crt_line, test_crt_line);
+        }
+    }
+
+    #[test]
+    fn it_returns_expected_crt_output_for_input_file() {
+        let result = get_register_values("./input.txt");
+
+        let file_contents =
+            fs::read_to_string("./input-crt.txt").expect("Should have been able to read the file");
+
+        for (index, test_crt_line) in file_contents.lines().enumerate() {
+            let crt_line = &result.crt_screen[index];
+            assert_eq!(crt_line, test_crt_line);
+        }
     }
 }
