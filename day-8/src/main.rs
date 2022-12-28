@@ -5,6 +5,30 @@ use std::ops::Range;
 
 type Grid = Vec<Vec<u32>>;
 
+fn get_number_of_visible_trees(
+    slice: &Vec<u32>,
+    current_tree_height: &u32,
+    is_reverse: bool,
+) -> u32 {
+    let mut number_of_trees_visible = 0;
+
+    let mut range = slice.clone();
+
+    if is_reverse {
+        range.reverse();
+    }
+
+    for tree_height in range.iter() {
+        number_of_trees_visible += 1;
+
+        if tree_height >= current_tree_height {
+            break;
+        }
+    }
+
+    return number_of_trees_visible;
+}
+
 fn are_trees_shorter_than_current_tree(slice: Vec<u32>, current_tree_height: u32) -> bool {
     let trees_shorter_than_current_tree = slice
         .iter()
@@ -51,93 +75,53 @@ fn is_at_edge_of_grid(
 fn calculate_scenic_score_from_left(grid: &Grid, grid_position: (usize, usize)) -> u32 {
     let (current_row_index, current_column_index) = grid_position;
 
-    let current_tree_height = grid[current_row_index][current_column_index];
+    let current_tree_height = &grid[current_row_index][current_column_index];
 
-    let left_slice = &grid[current_row_index][0..current_column_index];
+    let slice = &grid[current_row_index][0..current_column_index];
 
-    let mut number_of_trees_visible = 0;
-
-    for tree_height in left_slice.iter().rev() {
-        number_of_trees_visible += 1;
-
-        if tree_height >= &current_tree_height {
-            break;
-        }
-    }
-
-    return number_of_trees_visible;
+    return get_number_of_visible_trees(&slice.to_vec(), current_tree_height, true);
 }
 
 fn calculate_scenic_score_from_right(grid: &Grid, grid_position: (usize, usize)) -> u32 {
     let (current_row_index, current_column_index) = grid_position;
 
-    let current_tree_height = grid[current_row_index][current_column_index];
+    let current_tree_height = &grid[current_row_index][current_column_index];
 
     let number_of_columns = grid[0].len();
 
-    let right_slice = &grid[current_row_index][current_column_index + 1..number_of_columns];
+    let slice = &grid[current_row_index][current_column_index + 1..number_of_columns];
 
-    let mut number_of_trees_visible = 0;
-
-    for tree_height in right_slice.iter() {
-        number_of_trees_visible += 1;
-
-        if tree_height >= &current_tree_height {
-            break;
-        }
-    }
-
-    return number_of_trees_visible;
+    return get_number_of_visible_trees(&slice.to_vec(), current_tree_height, false);
 }
 
 fn calculate_scenic_score_from_up(grid: &Grid, grid_position: (usize, usize)) -> u32 {
     let (current_row_index, current_column_index) = grid_position;
 
-    let current_tree_height = grid[current_row_index][current_column_index];
+    let current_tree_height = &grid[current_row_index][current_column_index];
 
-    let mut up_slice: Vec<u32> = Vec::new();
+    let mut slice: Vec<u32> = Vec::new();
 
     for i in 0..current_row_index {
-        up_slice.push(grid[i][current_column_index]);
+        slice.push(grid[i][current_column_index]);
     }
 
-    let mut number_of_trees_visible = 0;
-
-    for tree_height in up_slice.iter().rev() {
-        number_of_trees_visible += 1;
-
-        if tree_height >= &current_tree_height {
-            break;
-        }
-    }
-
-    return number_of_trees_visible;
+    return get_number_of_visible_trees(&slice.to_vec(), current_tree_height, true);
 }
 
 fn calculate_scenic_score_from_down(grid: &Grid, grid_position: (usize, usize)) -> u32 {
     let (current_row_index, current_column_index) = grid_position;
 
-    let current_tree_height = grid[current_row_index][current_column_index];
+    let current_tree_height = &grid[current_row_index][current_column_index];
 
     let number_of_rows = grid.len();
 
-    let mut down_slice: Vec<u32> = Vec::new();
+    let mut slice: Vec<u32> = Vec::new();
 
     for i in current_row_index + 1..number_of_rows {
-        down_slice.push(grid[i][current_column_index]);
+        slice.push(grid[i][current_column_index]);
     }
 
-    let mut number_of_trees_visible = 0;
-
-    for tree_height in down_slice.iter() {
-        number_of_trees_visible += 1;
-
-        if tree_height >= &current_tree_height {
-            break;
-        }
-    }
-
-    return number_of_trees_visible;
+    return get_number_of_visible_trees(&slice.to_vec(), current_tree_height, false);
 }
 
 fn is_tree_visible(grid: &Grid, (current_row_index, current_column_index): (usize, usize)) -> bool {
