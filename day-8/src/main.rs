@@ -5,6 +5,20 @@ use std::ops::Range;
 
 type Grid = Vec<Vec<u32>>;
 
+fn get_vertical_slice_of_trees(
+    range: Range<usize>,
+    grid: &Grid,
+    current_column_index: usize,
+) -> Vec<u32> {
+    let mut slice = Vec::new();
+
+    for i in range {
+        slice.push(grid[i][current_column_index]);
+    }
+
+    return slice;
+}
+
 fn get_number_of_visible_trees(
     slice: &Vec<u32>,
     current_tree_height: &u32,
@@ -38,21 +52,6 @@ fn are_trees_shorter_than_current_tree(slice: Vec<u32>, current_tree_height: u32
     return trees_shorter_than_current_tree.len() == slice.len();
 }
 
-fn is_visible_vertical(
-    row_range: Range<usize>,
-    current_tree_height: u32,
-    grid: &Grid,
-    current_column_index: usize,
-) -> bool {
-    let mut column_slice: Vec<u32> = Vec::new();
-
-    for row_index in row_range {
-        column_slice.push(grid[row_index][current_column_index]);
-    }
-
-    return are_trees_shorter_than_current_tree(column_slice, current_tree_height);
-}
-
 fn is_at_edge_of_grid(
     grid: &Grid,
     (current_row_index, current_column_index): (usize, usize),
@@ -72,86 +71,37 @@ fn is_at_edge_of_grid(
     return false;
 }
 
-fn calculate_scenic_score_from_left(grid: &Grid, grid_position: (usize, usize)) -> u32 {
-    let (current_row_index, current_column_index) = grid_position;
-
-    let current_tree_height = &grid[current_row_index][current_column_index];
-
-    let slice = &grid[current_row_index][0..current_column_index];
-
-    return get_number_of_visible_trees(&slice.to_vec(), current_tree_height, true);
-}
-
-fn calculate_scenic_score_from_right(grid: &Grid, grid_position: (usize, usize)) -> u32 {
-    let (current_row_index, current_column_index) = grid_position;
-
-    let current_tree_height = &grid[current_row_index][current_column_index];
-
-    let number_of_columns = grid[0].len();
-
-    let slice = &grid[current_row_index][current_column_index + 1..number_of_columns];
-
-    return get_number_of_visible_trees(&slice.to_vec(), current_tree_height, false);
-}
-
-fn calculate_scenic_score_from_up(grid: &Grid, grid_position: (usize, usize)) -> u32 {
-    let (current_row_index, current_column_index) = grid_position;
-
-    let current_tree_height = &grid[current_row_index][current_column_index];
-
-    let mut slice: Vec<u32> = Vec::new();
-
-    for i in 0..current_row_index {
-        slice.push(grid[i][current_column_index]);
-    }
-
-    return get_number_of_visible_trees(&slice.to_vec(), current_tree_height, true);
-}
-
-fn calculate_scenic_score_from_down(grid: &Grid, grid_position: (usize, usize)) -> u32 {
-    let (current_row_index, current_column_index) = grid_position;
-
-    let current_tree_height = &grid[current_row_index][current_column_index];
-
-    let number_of_rows = grid.len();
-
-    let mut slice: Vec<u32> = Vec::new();
-
-    for i in current_row_index + 1..number_of_rows {
-        slice.push(grid[i][current_column_index]);
-    }
-
-    return get_number_of_visible_trees(&slice.to_vec(), current_tree_height, false);
-}
-
 fn is_tree_visible(grid: &Grid, (current_row_index, current_column_index): (usize, usize)) -> bool {
     let current_tree_height = grid[current_row_index][current_column_index];
 
     let number_of_columns = grid[0].len();
     let number_of_rows = grid.len();
 
-    let left_slice = &grid[current_row_index][0..current_column_index];
-    let right_slice = &grid[current_row_index][current_column_index + 1..number_of_columns];
     let up_range = 0..current_row_index;
     let down_range = current_row_index + 1..number_of_rows;
+
+    let up_slice = get_vertical_slice_of_trees(up_range, grid, current_column_index);
+    let down_slice = get_vertical_slice_of_trees(down_range, grid, current_column_index);
+    let left_slice = grid[current_row_index][0..current_column_index].to_vec();
+    let right_slice = grid[current_row_index][current_column_index + 1..number_of_columns].to_vec();
 
     if is_at_edge_of_grid(grid, (current_row_index, current_column_index)) {
         return true;
     }
 
-    if are_trees_shorter_than_current_tree(left_slice.to_vec(), current_tree_height) {
+    if are_trees_shorter_than_current_tree(left_slice, current_tree_height) {
         return true;
     }
 
-    if are_trees_shorter_than_current_tree(right_slice.to_vec(), current_tree_height) {
+    if are_trees_shorter_than_current_tree(right_slice, current_tree_height) {
         return true;
     }
 
-    if is_visible_vertical(up_range, current_tree_height, grid, current_column_index) {
+    if are_trees_shorter_than_current_tree(up_slice, current_tree_height) {
         return true;
     }
 
-    if is_visible_vertical(down_range, current_tree_height, grid, current_column_index) {
+    if are_trees_shorter_than_current_tree(down_slice, current_tree_height) {
         return true;
     }
 
@@ -159,15 +109,30 @@ fn is_tree_visible(grid: &Grid, (current_row_index, current_column_index): (usiz
 }
 
 fn get_score_for_tree(grid: &Grid, grid_position: (usize, usize)) -> u32 {
+    let (current_row_index, current_column_index) = grid_position;
+
+    let current_tree_height = &grid[current_row_index][current_column_index];
+
+    let number_of_columns = grid[0].len();
+    let number_of_rows = grid.len();
+
+    let up_range = 0..current_row_index;
+    let down_range = current_row_index + 1..number_of_rows;
+
+    let up_slice = get_vertical_slice_of_trees(up_range, grid, current_column_index);
+    let down_slice = get_vertical_slice_of_trees(down_range, grid, current_column_index);
+    let left_slice = grid[current_row_index][0..current_column_index].to_vec();
+    let right_slice = grid[current_row_index][current_column_index + 1..number_of_columns].to_vec();
+
     let mut score = 1;
 
-    score *= calculate_scenic_score_from_left(&grid, grid_position);
+    score *= get_number_of_visible_trees(&left_slice, current_tree_height, true);
 
-    score *= calculate_scenic_score_from_right(&grid, grid_position);
+    score *= get_number_of_visible_trees(&right_slice, current_tree_height, false);
 
-    score *= calculate_scenic_score_from_up(&grid, grid_position);
+    score *= get_number_of_visible_trees(&up_slice, current_tree_height, true);
 
-    score *= calculate_scenic_score_from_down(&grid, grid_position);
+    score *= get_number_of_visible_trees(&down_slice, current_tree_height, false);
 
     return score;
 }
