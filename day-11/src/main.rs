@@ -33,7 +33,7 @@ struct Monkey {
 
 fn process_round(monkeys: &mut Vec<Monkey>, is_part_1: bool) {
     let mod_value: i64 = monkeys.iter().map(|monkey| monkey.test).product();
-    println!("{}", mod_value);
+
     for i in 0..monkeys.len() {
         while let Some(item) = monkeys[i].items.pop() {
             let current_monkey = &mut monkeys[i];
