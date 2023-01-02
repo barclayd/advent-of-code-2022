@@ -10,15 +10,44 @@ enum Operation {
     AddSelf,
 }
 
+impl Operation {
+    fn calculate(&self, value: i32) -> i32 {
+        match self {
+            Self::AddSelf => value + value,
+            Self::MultiplySelf => value * value,
+            Self::Add(n) => value + *n,
+            Self::Multiply(n) => value * *n,
+            Self::Noop => panic!("Tried to process noop"),
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 struct Monkey {
     items: Vec<i32>,
     operation: Operation,
     test: i32,
     destination: (usize, usize),
+    count: usize,
 }
 
-fn get_monkey_business_level_after_rounds(file_path: &str, rounds: i32) -> i32 {
+fn process_round(monkeys: &mut Vec<Monkey>) {
+    for i in 0..monkeys.len() {
+        while let Some(item) = monkeys[i].items.pop() {
+            let current_monkey = &mut monkeys[i];
+            let worry = current_monkey.operation.calculate(item) / 3;
+            let destination = if worry % current_monkey.test == 0 {
+                current_monkey.destination.0
+            } else {
+                current_monkey.destination.1
+            };
+            monkeys[destination].items.push(worry);
+            monkeys[i].count += 1;
+        }
+    }
+}
+
+fn get_monkey_business_level_after_rounds(file_path: &str, rounds: i32) -> usize {
     let file_contents =
         fs::read_to_string(file_path).expect("Should have been able to read the file");
 
@@ -27,7 +56,6 @@ fn get_monkey_business_level_after_rounds(file_path: &str, rounds: i32) -> i32 {
     let mut monkey = Monkey::default();
 
     for line in file_contents.lines().filter(|line| line.trim().len() > 1) {
-        println!("line: {line}");
         let words = line.trim().split(' ').collect::<Vec<&str>>();
         match words[0] {
             "Monkey" => monkey = Monkey::default(),
@@ -67,13 +95,23 @@ fn get_monkey_business_level_after_rounds(file_path: &str, rounds: i32) -> i32 {
         }
     }
 
-    println!("Monkeys {:?}", monkeys);
+    for _ in 0..rounds {
+        process_round(&mut monkeys);
+    }
 
-    0
+    let mut monkey_business = monkeys
+        .iter()
+        .map(|monkey| monkey.count)
+        .collect::<Vec<usize>>();
+
+    monkey_business.sort();
+    monkey_business.reverse();
+
+    return monkey_business[0] * monkey_business[1];
 }
 
 fn main() {
-    let level = get_monkey_business_level_after_rounds("./input.txt", 20);
+    let level = get_monkey_business_level_after_rounds("./test.txt", 20);
     println!("Monkey business level: {level}");
 }
 
