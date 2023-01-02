@@ -4,14 +4,14 @@ use std::fs;
 enum Operation {
     #[default]
     Noop,
-    Multiply(i32),
-    Add(i32),
+    Multiply(i64),
+    Add(i64),
     MultiplySelf,
     AddSelf,
 }
 
 impl Operation {
-    fn calculate(&self, value: i32) -> i32 {
+    fn calculate(&self, value: i64) -> i64 {
         match self {
             Self::AddSelf => value + value,
             Self::MultiplySelf => value * value,
@@ -24,18 +24,24 @@ impl Operation {
 
 #[derive(Debug, Default, Clone)]
 struct Monkey {
-    items: Vec<i32>,
+    items: Vec<i64>,
     operation: Operation,
-    test: i32,
+    test: i64,
     destination: (usize, usize),
     count: usize,
 }
 
-fn process_round(monkeys: &mut Vec<Monkey>) {
+fn process_round(monkeys: &mut Vec<Monkey>, is_part_1: bool) {
+    let mod_value: i64 = monkeys.iter().map(|monkey| monkey.test).product();
+    println!("{}", mod_value);
     for i in 0..monkeys.len() {
         while let Some(item) = monkeys[i].items.pop() {
             let current_monkey = &mut monkeys[i];
-            let worry = current_monkey.operation.calculate(item) / 3;
+            let worry = if is_part_1 {
+                current_monkey.operation.calculate(item) / 3
+            } else {
+                current_monkey.operation.calculate(item) % mod_value
+            };
             let destination = if worry % current_monkey.test == 0 {
                 current_monkey.destination.0
             } else {
@@ -47,7 +53,7 @@ fn process_round(monkeys: &mut Vec<Monkey>) {
     }
 }
 
-fn get_monkey_business_level_after_rounds(file_path: &str, rounds: i32) -> usize {
+fn get_monkey_business_level_after_rounds(file_path: &str, rounds: i64, is_part_1: bool) -> usize {
     let file_contents =
         fs::read_to_string(file_path).expect("Should have been able to read the file");
 
@@ -96,7 +102,7 @@ fn get_monkey_business_level_after_rounds(file_path: &str, rounds: i32) -> usize
     }
 
     for _ in 0..rounds {
-        process_round(&mut monkeys);
+        process_round(&mut monkeys, is_part_1);
     }
 
     let mut monkey_business = monkeys
@@ -111,8 +117,13 @@ fn get_monkey_business_level_after_rounds(file_path: &str, rounds: i32) -> usize
 }
 
 fn main() {
-    let level = get_monkey_business_level_after_rounds("./test.txt", 20);
-    println!("Monkey business level: {level}");
+    let part_1_monkey_business_level =
+        get_monkey_business_level_after_rounds("./test.txt", 20, true);
+    println!("Part 1: Monkey business level={part_1_monkey_business_level}");
+
+    let part_2_monkey_business_level =
+        get_monkey_business_level_after_rounds("./test.txt", 10000, false);
+    println!("Part 2: Monkey business level={part_2_monkey_business_level}");
 }
 
 #[cfg(test)]
@@ -120,14 +131,26 @@ mod tests {
     use crate::get_monkey_business_level_after_rounds;
 
     #[test]
-    fn it_returns_expected_x_register_value_for_test_file() {
-        let level = get_monkey_business_level_after_rounds("./test.txt", 20);
+    fn it_returns_expected_levels_of_monkey_business_for_test_file_and_rounds() {
+        let level = get_monkey_business_level_after_rounds("./test.txt", 20, true);
         assert_eq!(level, 10605);
     }
 
     #[test]
-    fn it_returns_expected_x_register_value_for_input_file() {
-        let level = get_monkey_business_level_after_rounds("./input.txt", 20);
-        assert_eq!(level, 10605);
+    fn it_returns_expected_levels_of_monkey_business_for_input_file_and_rounds() {
+        let level = get_monkey_business_level_after_rounds("./input.txt", 20, true);
+        assert_eq!(level, 55944);
+    }
+
+    #[test]
+    fn it_returns_expected_levels_of_monkey_business_with_new_rules_for_test_file_and_rounds() {
+        let level = get_monkey_business_level_after_rounds("./test.txt", 10000, false);
+        assert_eq!(level, 2713310158);
+    }
+
+    #[test]
+    fn it_returns_expected_levels_of_monkey_business_with_new_rules_for_input_file_and_rounds() {
+        let level = get_monkey_business_level_after_rounds("./input.txt", 10000, false);
+        assert_eq!(level, 15117269860);
     }
 }
