@@ -14,7 +14,7 @@ fn get_surrounding_points(
         .iter()
         .map(|direction| (i_position.0 + direction.0, i_position.1 + direction.1))
         .filter(|position| {
-            position.0 >= 0 && position.1 >= 0 && position.0 < width && position.1 < height
+            position.0 >= 0 && position.1 >= 0 && position.0 < height && position.1 < width
         })
         .map(|position| (position.0 as usize, position.1 as usize))
         .collect()
@@ -57,16 +57,20 @@ fn get_fewest_number_of_steps(file_path: &str) -> usize {
 
         let valid_path_locations = points
             .iter()
-            .filter(|position| grid[position.0][position.1] + 1 > current_elevation)
+            .filter(|position| grid[position.0][position.1] + 1 >= current_elevation)
             .map(|position| *position)
             .collect::<Vec<(usize, usize)>>();
 
         let new_path_distance = valid_path_locations
             .iter()
             .filter_map(|position| shortest_locations.get(position))
-            .min()
-            .unwrap()
-            + 1;
+            .min();
+
+        if new_path_distance.is_none() {
+            continue;
+        }
+
+        let new_path_distance = new_path_distance.unwrap() + 1;
 
         let current_path_distance = shortest_locations.entry(location).or_insert(usize::MAX);
 
@@ -90,6 +94,12 @@ mod tests {
     #[test]
     fn it_returns_expected_fewest_number_of_steps_for_test_file() {
         let number_of_steps = get_fewest_number_of_steps("./test.txt");
+        assert_eq!(number_of_steps, 31);
+    }
+
+    #[test]
+    fn it_returns_expected_fewest_number_of_steps_for_input_file() {
+        let number_of_steps = get_fewest_number_of_steps("./input.txt");
         assert_eq!(number_of_steps, 31);
     }
 }
