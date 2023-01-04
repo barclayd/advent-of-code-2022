@@ -1,14 +1,48 @@
-use std::collections::HashMap;
+use std::collections::{HashSet, VecDeque};
 use std::fs;
 
 const DIRECTIONS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
+type Grid = Vec<Vec<u8>>;
+
+fn breadth_first_search(
+    grid: &Grid,
+    start_point: (usize, usize),
+    end_point: (usize, usize),
+    width: i32,
+    height: i32,
+) -> Option<usize> {
+    let mut visited_points = HashSet::new();
+    let mut queue = VecDeque::new();
+
+    visited_points.insert(start_point);
+    queue.push_back((start_point, 0));
+
+    while let Some(position) = queue.pop_front() {
+        let valid_points = get_surrounding_points(grid, position.0, width, height);
+
+        for valid_point in valid_points {
+            if !visited_points.insert(valid_point) {
+                continue;
+            }
+            if valid_point == end_point {
+                return Some(position.1 + 1);
+            }
+            queue.push_back((valid_point, position.1 + 1));
+        }
+    }
+
+    None
+}
+
 fn get_surrounding_points(
+    grid: &Grid,
     position: (usize, usize),
     width: i32,
     height: i32,
 ) -> Vec<(usize, usize)> {
     let i_position = (position.0 as i32, position.1 as i32);
+    let current_elevation = grid[position.0][position.1];
 
     DIRECTIONS
         .iter()
@@ -17,15 +51,23 @@ fn get_surrounding_points(
             position.0 >= 0 && position.1 >= 0 && position.0 < height && position.1 < width
         })
         .map(|position| (position.0 as usize, position.1 as usize))
+        .filter(|position| grid[position.0][position.1] <= current_elevation + 1)
         .collect()
 }
 
-fn get_fewest_number_of_steps(file_path: &str) -> usize {
+fn get_fewest_number_of_steps(
+    file_path: &str,
+    start_point: Option<(usize, usize)>,
+) -> Option<usize> {
     let file_contents =
         fs::read_to_string(file_path).expect("Should have been able to read the file");
 
-    let mut grid: Vec<Vec<u8>> = Vec::new();
-    let mut start: (usize, usize) = (0, 0);
+    let mut grid: Grid = Vec::new();
+    let mut start: (usize, usize) = if let Some(start_point) = start_point {
+        start_point
+    } else {
+        (0, 0)
+    };
     let mut end: (usize, usize) = (0, 0);
 
     for (row, line) in file_contents.lines().enumerate() {
@@ -44,47 +86,11 @@ fn get_fewest_number_of_steps(file_path: &str) -> usize {
     let width = grid[0].len() as i32;
     let height = grid.len() as i32;
 
-    let mut steps_to_visit: Vec<(usize, usize)> = Vec::new();
-
-    steps_to_visit.extend(get_surrounding_points(start, width, height));
-
-    let mut shortest_locations: HashMap<(usize, usize), usize> = HashMap::new();
-
-    shortest_locations.insert(start, 0);
-    while let Some(location) = steps_to_visit.pop() {
-        let current_elevation = grid[location.0][location.1];
-        let points = get_surrounding_points(location, width, height);
-
-        let valid_path_locations = points
-            .iter()
-            .filter(|position| grid[position.0][position.1] + 1 >= current_elevation)
-            .map(|position| *position)
-            .collect::<Vec<(usize, usize)>>();
-
-        let new_path_distance = valid_path_locations
-            .iter()
-            .filter_map(|position| shortest_locations.get(position))
-            .min();
-
-        if new_path_distance.is_none() {
-            continue;
-        }
-
-        let new_path_distance = new_path_distance.unwrap() + 1;
-
-        let current_path_distance = shortest_locations.entry(location).or_insert(usize::MAX);
-
-        if *current_path_distance > new_path_distance {
-            *current_path_distance = new_path_distance;
-            steps_to_visit.extend(points);
-        }
-    }
-
-    return *shortest_locations.get(&end).unwrap();
+    return breadth_first_search(&grid, start, end, width, height);
 }
 
 fn main() {
-    get_fewest_number_of_steps("./test.txt");
+    get_fewest_number_of_steps("./test.txt", None);
 }
 
 #[cfg(test)]
@@ -93,13 +99,25 @@ mod tests {
 
     #[test]
     fn it_returns_expected_fewest_number_of_steps_for_test_file() {
-        let number_of_steps = get_fewest_number_of_steps("./test.txt");
+        let number_of_steps = get_fewest_number_of_steps("./test.txt", None).unwrap_or_default();
         assert_eq!(number_of_steps, 31);
     }
 
     #[test]
     fn it_returns_expected_fewest_number_of_steps_for_input_file() {
-        let number_of_steps = get_fewest_number_of_steps("./input.txt");
-        assert_eq!(number_of_steps, 31);
+        let number_of_steps = get_fewest_number_of_steps("./input.txt", None).unwrap_or_default();
+        assert_eq!(number_of_steps, 484);
+    }
+
+    #[test]
+    fn it_returns_expected_fewest_number_of_steps_from_any_square_for_test_file() {
+        let number_of_steps = get_fewest_number_of_steps("./test.txt", None).unwrap_or_default();
+        assert_eq!(number_of_steps, 29);
+    }
+
+    #[test]
+    fn it_returns_expected_fewest_number_of_steps_from_any_square_for_input_file() {
+        let number_of_steps = get_fewest_number_of_steps("./input.txt", None).unwrap_or_default();
+        assert_eq!(number_of_steps, 29);
     }
 }
