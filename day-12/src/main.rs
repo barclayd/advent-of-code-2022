@@ -86,11 +86,24 @@ fn get_fewest_number_of_steps(
     let width = grid[0].len() as i32;
     let height = grid.len() as i32;
 
-    return breadth_first_search(&grid, start, end, width, height);
+    let mut start_points = Vec::new();
+    for (row, line) in grid.iter().enumerate() {
+        for (col, ch) in line.iter().enumerate() {
+            if *ch == b'a' {
+                start_points.push((row, col))
+            }
+        }
+    }
+
+    start_points
+        .iter()
+        .filter_map(|p| breadth_first_search(&grid, *p, end, width, height))
+        .min()
 }
 
 fn main() {
-    get_fewest_number_of_steps("./test.txt", None);
+    let steps = get_fewest_number_of_steps("./input.txt", None);
+    println!("steps: {:?}", steps);
 }
 
 #[cfg(test)]
@@ -99,13 +112,15 @@ mod tests {
 
     #[test]
     fn it_returns_expected_fewest_number_of_steps_for_test_file() {
-        let number_of_steps = get_fewest_number_of_steps("./test.txt", None).unwrap_or_default();
+        let number_of_steps =
+            get_fewest_number_of_steps("./test.txt", Some((0, 0))).unwrap_or_default();
         assert_eq!(number_of_steps, 31);
     }
 
     #[test]
     fn it_returns_expected_fewest_number_of_steps_for_input_file() {
-        let number_of_steps = get_fewest_number_of_steps("./input.txt", None).unwrap_or_default();
+        let number_of_steps =
+            get_fewest_number_of_steps("./input.txt", Some((0, 0))).unwrap_or_default();
         assert_eq!(number_of_steps, 484);
     }
 
@@ -118,6 +133,6 @@ mod tests {
     #[test]
     fn it_returns_expected_fewest_number_of_steps_from_any_square_for_input_file() {
         let number_of_steps = get_fewest_number_of_steps("./input.txt", None).unwrap_or_default();
-        assert_eq!(number_of_steps, 29);
+        assert_eq!(number_of_steps, 478);
     }
 }
